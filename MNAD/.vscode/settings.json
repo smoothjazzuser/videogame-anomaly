@@ -1,0 +1,9 @@
+{
+    "python.linting.enabled": false,
+    "python.linting.lintOnSave": false,
+    "python.linting.pylintCategorySeverity.warning": "Error",
+    "python.linting.pylintCategorySeverity.refactor": "Error",
+    "python.linting.pylintCategorySeverity.convention": "Error",
+    "python.linting.mypyCategorySeverity.note": "Error",
+    "python.linting.pycodestyleCategorySeverity.W": "Error"
+}
