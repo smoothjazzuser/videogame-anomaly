@@ -1,13 +1,11 @@
 import numpy as np
 import os
 import torch
-from torch.utils import data
+import torch.utils.data as data
 import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
-import accimage
 from PIL import Image
 import os.path
-from torchvision import get_image_backend
 import sys
 
 
@@ -19,7 +17,7 @@ def pil_loader(path):
 
 
 def accimage_loader(path):
-    
+    import accimage
     try:
         return accimage.Image(path)
     except IOError:
@@ -28,7 +26,7 @@ def accimage_loader(path):
 
 
 def default_loader(path):
-    
+    from torchvision import get_image_backend
     if get_image_backend() == 'accimage':
         return accimage_loader(path)
     else:
@@ -183,3 +181,6 @@ class ImageFolder(DatasetFolder):
                                           transform=transform,
                                           target_transform=target_transform)
         self.imgs = self.samples
+        
+
+

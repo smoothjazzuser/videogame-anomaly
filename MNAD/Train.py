@@ -43,10 +43,10 @@ parser.add_argument('--t_length', type=int, default=5, help='length of the frame
 parser.add_argument('--fdim', type=int, default=512, help='channel dimension of the features')
 parser.add_argument('--mdim', type=int, default=512, help='channel dimension of the memory items')
 parser.add_argument('--msize', type=int, default=10, help='number of the memory items')
-parser.add_argument('--num_workers', type=int, default=12, help='number of workers for the train loader')
+parser.add_argument('--num_workers', type=int, default=2, help='number of workers for the train loader')
 parser.add_argument('--num_workers_test', type=int, default=1, help='number of workers for the test loader')
-parser.add_argument('--dataset_type', type=str, default='avenue', help='type of dataset: ped2, avenue, shanghai')
-parser.add_argument('--dataset_path', type=str, default='./data', help='directory of data')
+parser.add_argument('--dataset_type', type=str, default='ped2', help='type of dataset: ped2, avenue, shanghai')
+parser.add_argument('--dataset_path', type=str, default='./dataset', help='directory of data')
 parser.add_argument('--exp_dir', type=str, default='log', help='directory of log')
 
 args = parser.parse_args()
