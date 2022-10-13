@@ -46,7 +46,7 @@ class DataLoader(data.Dataset):
             video_name = video.split('/')[-1]
             self.videos[video_name] = {}
             self.videos[video_name]['path'] = video
-            self.videos[video_name]['frame'] = glob.glob(f'{video}/*/*.*')#glob.glob(os.path.join(video, '*.*'))
+            self.videos[video_name]['frame'] = glob.glob(os.path.join(video, '*.jpg')) #glob.glob(f'{video}/*/*.*')
             self.videos[video_name]['frame'].sort()
             self.videos[video_name]['length'] = len(self.videos[video_name]['frame'])
             
