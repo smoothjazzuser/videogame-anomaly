@@ -68,7 +68,11 @@ class DataLoader(data.Dataset):
         
         batch = []
         for i in range(self._time_step+self._num_pred):
-            image = np_load_frame(self.videos[video_name]['frame'][frame_name+i], self._resize_height, self._resize_width)
+            try:
+                image = np_load_frame(self.videos[video_name]['frame'][frame_name+i], self._resize_height, self._resize_width)
+            except Exception as e:
+                print(frame_name, i, video_name)
+                a = 0
             if self.transform is not None:
                 batch.append(self.transform(image))
 
