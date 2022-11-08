@@ -34,9 +34,9 @@ parser.add_argument('--test_batch_size', type=int, default=1, help='batch size f
 parser.add_argument('--epochs', type=int, default=12, help='number of epochs for training')
 parser.add_argument('--loss_compact', type=float, default=0.1, help='weight of the feature compactness loss')
 parser.add_argument('--loss_separate', type=float, default=0.1, help='weight of the feature separateness loss')
-parser.add_argument('--h', type=int, default=84, help='height of input images')#256
-parser.add_argument('--w', type=int, default=84, help='width of input images')#256
-parser.add_argument('--c', type=int, default=1, help='channel of input images')
+parser.add_argument('--h', type=int, default=256, help='height of input images')#256
+parser.add_argument('--w', type=int, default=256, help='width of input images')#256
+parser.add_argument('--c', type=int, default=3, help='channel of input images')
 parser.add_argument('--lr', type=float, default=2e-4, help='initial learning rate')
 parser.add_argument('--method', type=str, default='recon', help='The target task for anoamly detection')
 parser.add_argument('--t_length', type=int, default=1, help='length of the frame sequences')
