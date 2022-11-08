@@ -1,5 +1,12 @@
 data/
-
+*.png
+*.target
+*.zip
+*.tar
+*.tar.*
+*.npy
+*frames
+*.npy
 *.jpg
 # Byte-compiled / optimized / DLL files
 __pycache__/
