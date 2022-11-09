@@ -78,7 +78,7 @@ train_batch = data.DataLoader(train_dataset, batch_size = args.batch_size,
                               shuffle=True, num_workers=args.num_workers, drop_last=True)
 test_batch = data.DataLoader(test_dataset, batch_size = args.test_batch_size, 
                              shuffle=False, num_workers=args.num_workers_test, drop_last=False)
-
+ 
 
 # Model setting
 assert args.method == 'pred' or args.method == 'recon', 'Wrong task name'
