@@ -46,7 +46,7 @@ class DataLoader(data.Dataset):
             video_name = video.split('/')[-1]
             self.videos[video_name] = {}
             self.videos[video_name]['path'] = video
-            self.videos[video_name]['frame'] = glob.glob(os.path.join(video, '*.png')) #glob.glob(f'{video}/*/*.*')
+            self.videos[video_name]['frame'] = glob.glob(os.path.join(video, '*.jpg')) #glob.glob(f'{video}/*/*.*')
             self.videos[video_name]['frame'].sort()
             self.videos[video_name]['length'] = len(self.videos[video_name]['frame'])
             
@@ -68,7 +68,6 @@ class DataLoader(data.Dataset):
         
         batch = []
         for i in range(self._time_step+self._num_pred):
-
             image = np_load_frame(self.videos[video_name]['frame'][frame_name+i], self._resize_height, self._resize_width)
             if self.transform is not None:
                 batch.append(self.transform(image))
