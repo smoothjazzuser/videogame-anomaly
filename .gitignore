@@ -3,6 +3,9 @@ data/
 *.target
 *.zip
 *.tar
+*.mp4
+*/dataset/*
+*/data/*
 *.tar.*
 *.npy
 *frames
