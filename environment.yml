@@ -268,9 +268,9 @@ dependencies:
     - soupsieve==2.3.2.post1
     - terminado==0.15.0
     - tinycss2==1.1.1
-    - torch==1.12.1+cu116
-    - torchaudio==0.12.1+cu116
-    - torchvision==0.13.1+cu116
+    - torch==1.12.1
+    - torchaudio==0.12.1
+    - torchvision==0.13.1
     - traitlets==5.4.0
     - urllib3==1.26.12
     - wcwidth==0.2.5
