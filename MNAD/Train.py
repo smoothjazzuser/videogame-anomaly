@@ -23,8 +23,8 @@ from model.utils import DataLoader
 from sklearn.metrics import roc_auc_score
 from utils import *
 import random
-
 import argparse
+
 
 
 parser = argparse.ArgumentParser(description="MNAD")
@@ -117,7 +117,6 @@ for epoch in range(args.epochs):
     start = time.time()
     kkk = 0
     for j,(imgs) in enumerate(train_batch):
-        
         
         imgs = Variable(imgs).cuda()
         
