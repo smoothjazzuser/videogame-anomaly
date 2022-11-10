@@ -24,7 +24,7 @@ from sklearn.metrics import roc_auc_score
 from utils import *
 import random
 import argparse
-
+from tqdm import tqdm
 
 
 parser = argparse.ArgumentParser(description="MNAD")
@@ -116,7 +116,9 @@ for epoch in range(args.epochs):
     
     start = time.time()
     kkk = 0
-    for j,(imgs) in enumerate(train_batch):
+    #tqdm enumerate
+    for i, (inputs, labels) in enumerate(tqdm(train_batch)):
+    #for j,(imgs) in enumerate(train_batch):
         
         imgs = Variable(imgs).cuda()
         
