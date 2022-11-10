@@ -46,15 +46,17 @@ class DataLoader(data.Dataset):
             video_name = video.split('/')[-1]
             self.videos[video_name] = {}
             self.videos[video_name]['path'] = video
-            self.videos[video_name]['frame'] = glob.glob(os.path.join(video, '*.jpg')) #glob.glob(f'{video}/*/*.*')
-            self.videos[video_name]['frame'].sort()
+            self.videos[video_name]['frame'] = sorted(glob.glob(os.path.join(video, '*.jpg')), key=lambda x: int(x.split('/')[-1].split('.')[0]))
+            #self.videos[video_name]['frame'].sort()
             self.videos[video_name]['length'] = len(self.videos[video_name]['frame'])
             
             
     def get_all_samples(self):
         frames = []
         videos = glob.glob(os.path.join(self.dir, '*'))
-        for video in sorted(videos):
+        #remove non-int videos
+        videos = [video for video in videos if video.split('/')[-1].isdigit()]
+        for video in sorted(videos, key=lambda x: int(x.split('/')[-1])):
             video_name = video.split('/')[-1]
             for i in range(len(self.videos[video_name]['frame'])-self._time_step):
                 frames.append(self.videos[video_name]['frame'][i])
