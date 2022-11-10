@@ -110,14 +110,14 @@ loss_func_mse = nn.MSELoss(reduction='none')
 
 m_items = F.normalize(torch.rand((args.msize, args.mdim), dtype=torch.float), dim=1).cuda() # Initialize the memory items
 
-for epoch in range(args.epochs):
+for epoch in tqdm(range(args.epochs)):
     labels_list = []
     model.train()
     
     start = time.time()
     kkk = 0
     #tqdm enumerate
-    for i, (inputs, labels) in enumerate(tqdm(train_batch)):
+    for j,(imgs) in tqdm(enumerate(train_batch), total=len(train_batch)):
     #for j,(imgs) in enumerate(train_batch):
         
         imgs = Variable(imgs).cuda()
