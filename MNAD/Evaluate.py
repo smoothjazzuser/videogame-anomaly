@@ -50,7 +50,7 @@ if True:
     parser.add_argument('--test_batch_size', type=int, default=1, help='batch size for test')
     parser.add_argument('--h', type=int, default=256, help='height of input images')
     parser.add_argument('--w', type=int, default=256, help='width of input images')
-    parser.add_argument('--c', type=int, default=1, help='channel of input images')
+    parser.add_argument('--c', type=int, default=3, help='channel of input images')
     parser.add_argument('--method', type=str, default='recon', help='The target task for anoamly detection')
     parser.add_argument('--t_length', type=int, default=1, help='length of the frame sequences')
     parser.add_argument('--fdim', type=int, default=512, help='channel dimension of the features')
@@ -246,12 +246,12 @@ for (i,img) in enumerate(preds):
         img = img.astype(np.uint8)
         img = np.squeeze(img)
         img = PIL.Image.fromarray(img, 'L')
-        img.save(f"./exp/{args.dataset_type}/{args.method}/log/preds/{i}.png")
+        img.save(f"./exp/{args.dataset_type}/{args.method}/log/preds/{i}.jpg")
     else:
         img = img*255
         img = img.astype(np.uint8)
         img = PIL.Image.fromarray(img, 'RGB')
-        img.save(f"./exp/{args.dataset_type}/{args.method}/log/preds/{i}.png")
+        img.save(f"./exp/{args.dataset_type}/{args.method}/log/preds/{i}.jpg")
 
 for (i,img) in enumerate(diffs): 
     if args.c == 1:
@@ -259,12 +259,12 @@ for (i,img) in enumerate(diffs):
         img = img.astype(np.uint8)
         img = np.squeeze(img)
         img = PIL.Image.fromarray(img, 'L')
-        img.save(f"./exp/{args.dataset_type}/{args.method}/log/diffs/{i}.png")
+        img.save(f"./exp/{args.dataset_type}/{args.method}/log/diffs/{i}.jpg")
     else:
         img = img*255
         img = img.astype(np.uint8)
         img = PIL.Image.fromarray(img, 'RGB')
-        img.save(f"./exp/{args.dataset_type}/{args.method}/log/diffs/{i}.png")
+        img.save(f"./exp/{args.dataset_type}/{args.method}/log/diffs/{i}.jpg")
 
 
 print('The result of ', args.dataset_type)
