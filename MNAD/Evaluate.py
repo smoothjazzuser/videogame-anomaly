@@ -108,7 +108,7 @@ for video in videos_list:
     video_name = video.split('/')[-1]
     videos[video_name] = {}
     videos[video_name]['path'] = video
-    videos[video_name]['frame'] = sorted(glob.glob(os.path.join(video, '*.png')), key=lambda x: int(x.split('/')[-1].split('.')[0]))
+    videos[video_name]['frame'] = sorted(glob.glob(os.path.join(video, '*.jpg')), key=lambda x: int(x.split('/')[-1].split('.')[0]))
     #videos[video_name]['frame'].sort()
     videos[video_name]['length'] = len(videos[video_name]['frame'])
 
@@ -241,18 +241,31 @@ if not os.path.exists(f"./exp/{args.dataset_type}/{args.method}/log/preds/"):
 
 for (i,img) in enumerate(preds): 
     #use pillow to save the image in grayscale
-    img = img*255
-    img = img.astype(np.uint8)
-    img = np.squeeze(img)
-    img = PIL.Image.fromarray(img, 'L')
-    img.save(f"./exp/{args.dataset_type}/{args.method}/log/preds/{i}.png")
+    if args.c == 1:
+        img = img*255
+        img = img.astype(np.uint8)
+        img = np.squeeze(img)
+        img = PIL.Image.fromarray(img, 'L')
+        img.save(f"./exp/{args.dataset_type}/{args.method}/log/preds/{i}.png")
+    else:
+        img = img*255
+        img = img.astype(np.uint8)
+        img = PIL.Image.fromarray(img, 'RGB')
+        img.save(f"./exp/{args.dataset_type}/{args.method}/log/preds/{i}.png")
 
 for (i,img) in enumerate(diffs): 
-    img = img*255
-    img = img.astype(np.uint8)
-    img = np.squeeze(img)
-    img = PIL.Image.fromarray(img, "L")
-    img.save(f"./exp/{args.dataset_type}/{args.method}/log/diffs/{i}.png")
+    if args.c == 1:
+        img = img*255
+        img = img.astype(np.uint8)
+        img = np.squeeze(img)
+        img = PIL.Image.fromarray(img, 'L')
+        img.save(f"./exp/{args.dataset_type}/{args.method}/log/diffs/{i}.png")
+    else:
+        img = img*255
+        img = img.astype(np.uint8)
+        img = PIL.Image.fromarray(img, 'RGB')
+        img.save(f"./exp/{args.dataset_type}/{args.method}/log/diffs/{i}.png")
+
 
 print('The result of ', args.dataset_type)
 print('AUC: ', accuracy*100, '%')
