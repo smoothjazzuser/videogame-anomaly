@@ -1,6 +1,8 @@
 data/
 *.png
 *.target
+*exp*
+*data*
 *.zip
 *.tar
 *.mp4
@@ -151,3 +153,4 @@ dmypy.json
 cython_debug/
 .gitignore
 .vscode/settings.json
+MNAD/exp/bugs/recon/log/log.txt
