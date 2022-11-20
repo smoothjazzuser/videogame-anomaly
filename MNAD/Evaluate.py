@@ -30,6 +30,10 @@ if True:
 
     import argparse
 ############################################
+    
+    loss_sections = 4
+    std_loss_correction = {i:[] for i in range(loss_sections)} #False
+    method = 'rolling_std'
     force_keys = False
     prev = 0.0000001
     import matplotlib.pyplot as plt
@@ -41,7 +45,7 @@ if True:
     import matplotlib.image as mpimg
     import shutil
     import cv2
-    #import pillow
+    from scipy.stats import percentileofscore
     import PIL
 ############################################
     parser = argparse.ArgumentParser(description="MNAD")
@@ -57,14 +61,14 @@ if True:
     parser.add_argument('--mdim', type=int, default=512, help='channel dimension of the memory items')
     parser.add_argument('--msize', type=int, default=10, help='number of the memory items')
     parser.add_argument('--alpha', type=float, default=0.6, help='weight for the anomality score')
-    parser.add_argument('--th', type=float, default=0.0000, help='threshold for test updating')#1.5e-09
+    parser.add_argument('--th', type=float, default=0.0001, help='threshold for test updating')#1.5e-09
     parser.add_argument('--num_workers', type=int, default=8, help='number of workers for the train loader')
     parser.add_argument('--num_workers_test', type=int, default=1, help='number of workers for the test loader')
     parser.add_argument('--dataset_type', type=str, default='bugs', help='type of dataset: ped2, avenue, shanghai')
     parser.add_argument('--dataset_path', type=str, default='./dataset', help='directory of data')
     args = parser.parse_args()
-    parser.add_argument('--model_dir', type=str, default=f'./exp/bugs/{args.method}/log/model.pth', help='directory of model')
-    parser.add_argument('--m_items_dir', type=str, default=f'./exp/bugs/{args.method}/log/keys.pt',help='directory of model')
+    parser.add_argument('--model_dir', type=str, default=f'./exp/{args.dataset_type}/{args.method}/log/model.pth', help='directory of model')
+    parser.add_argument('--m_items_dir', type=str, default=f'./exp/{args.dataset_type}/{args.method}/log/keys.pt',help='directory of model')
 
     args = parser.parse_args()
 
@@ -93,7 +97,41 @@ print("The number of test data is %d" % test_size)
 test_batch = data.DataLoader(test_dataset, batch_size = args.test_batch_size, 
                              shuffle=False, num_workers=args.num_workers_test, drop_last=False)
 
-loss_func_mse = nn.MSELoss(reduction='none')
+if not std_loss_correction:
+    loss_func_mse = nn.MSELoss(reduction='none')
+else:
+    mse = nn.MSELoss(reduction='none')
+    def loss_func_mse(i, t):
+        global loss_sections, std_loss_correction
+        #split l into len(loss_sections) sections
+        losses = {'i':[], 't':[]}
+
+        #split tensor into sections
+        for section in range(loss_sections):
+            losses['i'].append(i[:,section*(i.shape[1]//loss_sections):(section+1)*(i.shape[1]//loss_sections)])
+            losses['t'].append(t[:,section*(t.shape[1]//loss_sections):(section+1)*(t.shape[1]//loss_sections)])
+
+        loss = 0
+        for section in range(loss_sections): 
+            l = mse(losses['i'][section], losses['t'][section])
+            l = l.mean()
+            std_loss_correction[section].append(l.cpu().detach().numpy())
+            if method =='rolling_std':
+                window = len(std_loss_correction[section])
+                if window > 100:
+                    window = 100
+                p = np.std(std_loss_correction[section][-window:]) + 0.0000001
+                loss = l * abs(.5 - p)
+            elif method == 'percentile':
+                p = percentileofscore(std_loss_correction[section], l.cpu().detach().numpy())/100  + 0.000000001
+                loss += l*abs((.5 - p)**2)
+            elif method == 'mean':
+                #l = l / np.mean(std_loss_correction[section])
+                p = abs(np.mean(std_loss_correction[section]) - l.cpu().detach().numpy()) + 0.000000001
+                loss += l*p
+
+
+        return loss
 
 # Loading the trained model
 model = torch.load(args.model_dir)
@@ -142,7 +180,8 @@ ccc = int(test_size/args.test_batch_size)
 diffs = []
 preds = []
 ground_truths = []
-label_list = np.load(f"/home/smoothjazzuser/videogame-anomoly/MNAD/dataset/frame_labels_bugs.npy", allow_pickle=True).tolist()[0]
+label_list = np.load(f"/home/smoothjazzuser/videogame-anomoly/MNAD/dataset/frame_labels_{args.dataset_type}.npy", allow_pickle=True).tolist()[0]
+loss_hist = {i:[] for i in range(loss_sections)}
 for k,(imgs) in enumerate(test_batch):
     
     if args.method == 'pred':
@@ -167,6 +206,16 @@ for k,(imgs) in enumerate(test_batch):
 
         # Calculating the threshold for updating at the test time
         point_sc = point_score(outputs, imgs[:,3*4:])
+
+        # visualize the difference between reconstructed and predicted frames in image format
+        #diff = np.abs((outputs[0].detach().cpu().numpy()+1)/2 - (imgs[0].detach().cpu().numpy()+1)/2).transpose(1,2,0)
+        diff = np.abs((outputs[0].detach().cpu().numpy()+1)/2 - (imgs[0,3*4:].detach().cpu().numpy()+1)/2).transpose(1,2,0)
+        #diff = normalize_array(diff)
+        diffs.append(diff)
+        pred = ((outputs[0].detach().cpu().numpy()+1)/2).transpose(1,2,0)
+        #pred = normalize_array(pred)
+        preds.append(pred)
+
     
     else:
         if force_keys:
@@ -182,7 +231,7 @@ for k,(imgs) in enumerate(test_batch):
 
          # visualize the difference between reconstructed and predicted frames in image format
         diff = np.abs((outputs[0].detach().cpu().numpy()+1)/2 - (imgs[0].detach().cpu().numpy()+1)/2).transpose(1,2,0)
-        normalize_array(diff)
+        #diff = normalize_array(diff)
         diffs.append(diff)
 
         pred = (outputs[0].detach().cpu().numpy()+1)/2
@@ -237,7 +286,6 @@ if not os.path.exists(f"./exp/{args.dataset_type}/{args.method}/log/diffs/"):
     os.makedirs(f"./exp/{args.dataset_type}/{args.method}/log/diffs/")
 if not os.path.exists(f"./exp/{args.dataset_type}/{args.method}/log/preds/"):
     os.makedirs(f"./exp/{args.dataset_type}/{args.method}/log/preds/")
-
 
 for (i,img) in enumerate(preds): 
     #use pillow to save the image in grayscale
