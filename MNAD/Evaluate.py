@@ -1,90 +1,92 @@
-if True:
-    import numpy as np
-    import os
-    import sys
-    import torch
-    import torch.nn as nn
-    import torch.nn.functional as F
-    import torch.optim as optim
-    import torchvision
-    import torch.nn.init as init
-    import torch.utils.data as data
-    import torch.utils.data.dataset as dataset
-    import torchvision.datasets as dset
-    import torchvision.transforms as transforms
-    from torch.autograd import Variable
-    import torchvision.utils as v_utils
-    import matplotlib.pyplot as plt
-    import cv2
-    import math
-    from collections import OrderedDict
-    import copy
-    import time
-    from model.utils import DataLoader
-    from model.final_future_prediction_with_memory_spatial_sumonly_weight_ranking_top1 import *
-    from model.Reconstruction import *
-    from sklearn.metrics import roc_auc_score
-    from utils import *
-    import random
-    import glob
-
-    import argparse
+import numpy as np
+import os
+import sys
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import torch.optim as optim
+import torchvision
+import torch.nn.init as init
+import torch.utils.data as data
+import torch.utils.data.dataset as dataset
+import torchvision.datasets as dset
+import torchvision.transforms as transforms
+from torch.autograd import Variable
+import torchvision.utils as v_utils
+import matplotlib.pyplot as plt
+import cv2
+import math
+from collections import OrderedDict
+import copy
+import time
+from model.utils import DataLoader
+from model.final_future_prediction_with_memory_spatial_sumonly_weight_ranking_top1 import *
+from model.Reconstruction import *
+from sklearn.metrics import roc_auc_score
+from utils import *
+import random
+import glob
+import subprocess
+import argparse
 ############################################
-    
-    loss_sections = 4
-    std_loss_correction = {i:[] for i in range(loss_sections)} #False
-    method = 'rolling_std'
-    force_keys = False
-    prev = 0.0000001
-    import matplotlib.pyplot as plt
-    from time import sleep
-    def normalize_array(array:np.ndarray):
-        min_val = np.min(array)
-        max_val = np.max(array)
-        return (array-min_val)/(max_val-min_val)#*255
-    import matplotlib.image as mpimg
-    import shutil
-    import cv2
-    from scipy.stats import percentileofscore
-    import PIL
+
+loss_sections = 1
+std_loss_correction = {i:[] for i in range(loss_sections)} #False
+
+method = 'blur'
+force_keys = False
+prev = 0.0000001
+import matplotlib.pyplot as plt
+from time import sleep
+def normalize_array(array:np.ndarray):
+    min_val = np.min(array)
+    max_val = np.max(array)
+    return (array-min_val)/(max_val-min_val)#*255
+import matplotlib.image as mpimg
+import shutil
+import cv2
+from scipy.stats import percentileofscore
+import PIL
+from joblib import Parallel, delayed
+import shutil
 ############################################
-    parser = argparse.ArgumentParser(description="MNAD")
-    parser.add_argument('--gpus', nargs='+', type=str, help='gpus')
-    parser.add_argument('--batch_size', type=int, default=5, help='batch size for training')
-    parser.add_argument('--test_batch_size', type=int, default=1, help='batch size for test')
-    parser.add_argument('--h', type=int, default=256, help='height of input images')
-    parser.add_argument('--w', type=int, default=256, help='width of input images')
-    parser.add_argument('--c', type=int, default=3, help='channel of input images')
-    parser.add_argument('--method', type=str, default='recon', help='The target task for anoamly detection')
-    parser.add_argument('--t_length', type=int, default=1, help='length of the frame sequences')
-    parser.add_argument('--fdim', type=int, default=512, help='channel dimension of the features')
-    parser.add_argument('--mdim', type=int, default=512, help='channel dimension of the memory items')
-    parser.add_argument('--msize', type=int, default=10, help='number of the memory items')
-    parser.add_argument('--alpha', type=float, default=0.6, help='weight for the anomality score')
-    parser.add_argument('--th', type=float, default=0.0001, help='threshold for test updating')#1.5e-09
-    parser.add_argument('--num_workers', type=int, default=8, help='number of workers for the train loader')
-    parser.add_argument('--num_workers_test', type=int, default=1, help='number of workers for the test loader')
-    parser.add_argument('--dataset_type', type=str, default='bugs', help='type of dataset: ped2, avenue, shanghai')
-    parser.add_argument('--dataset_path', type=str, default='./dataset', help='directory of data')
-    args = parser.parse_args()
-    parser.add_argument('--model_dir', type=str, default=f'./exp/{args.dataset_type}/{args.method}/log/model.pth', help='directory of model')
-    parser.add_argument('--m_items_dir', type=str, default=f'./exp/{args.dataset_type}/{args.method}/log/keys.pt',help='directory of model')
+parser = argparse.ArgumentParser(description="MNAD")
+parser.add_argument('--gpus', nargs='+', type=str, help='gpus')
+parser.add_argument('--batch_size', type=int, default=5, help='batch size for training')
+parser.add_argument('--test_batch_size', type=int, default=1, help='batch size for test')
+parser.add_argument('--h', type=int, default=256, help='height of input images')
+parser.add_argument('--w', type=int, default=256, help='width of input images')
+parser.add_argument('--c', type=int, default=3, help='channel of input images')
+parser.add_argument('--method', type=str, default='recon', help='The target task for anoamly detection')
+parser.add_argument('--t_length', type=int, default=1, help='length of the frame sequences')
+parser.add_argument('--fdim', type=int, default=512, help='channel dimension of the features')
+parser.add_argument('--mdim', type=int, default=512, help='channel dimension of the memory items')
+parser.add_argument('--msize', type=int, default=10, help='number of the memory items')
+parser.add_argument('--alpha', type=float, default=0.6, help='weight for the anomality score')
+parser.add_argument('--th', type=float, default=0.0001, help='threshold for test updating')#1.5e-09
+parser.add_argument('--num_workers', type=int, default=8, help='number of workers for the train loader')
+parser.add_argument('--num_workers_test', type=int, default=1, help='number of workers for the test loader')
+parser.add_argument('--dataset_type', type=str, default='bugs', help='type of dataset: ped2, avenue, shanghai')
+parser.add_argument('--dataset_path', type=str, default='./dataset', help='directory of data')
+args = parser.parse_args()
+parser.add_argument('--model_dir', type=str, default=f'./exp/{args.dataset_type}/{args.method}/log/model.pth', help='directory of model')
+parser.add_argument('--m_items_dir', type=str, default=f'./exp/{args.dataset_type}/{args.method}/log/keys.pt',help='directory of model')
 
-    args = parser.parse_args()
+args = parser.parse_args()
 
-    os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
-    if args.gpus is None:
-        gpus = "0"
-        os.environ["CUDA_VISIBLE_DEVICES"]= gpus
-    else:
-        gpus = ""
-        for i in range(len(args.gpus)):
-            gpus = gpus + args.gpus[i] + ","
-        os.environ["CUDA_VISIBLE_DEVICES"]= gpus[:-1]
+os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
+if args.gpus is None:
+    gpus = "0"
+    os.environ["CUDA_VISIBLE_DEVICES"]= gpus
+else:
+    gpus = ""
+    for i in range(len(args.gpus)):
+        gpus = gpus + args.gpus[i] + ","
+    os.environ["CUDA_VISIBLE_DEVICES"]= gpus[:-1]
 
-    torch.backends.cudnn.enabled = True # make sure to use cudnn for computational performance
+torch.backends.cudnn.enabled = True # make sure to use cudnn for computational performance
 
-    test_folder = args.dataset_path+"/"+args.dataset_type+"/testing/frames"
+test_folder = args.dataset_path+"/"+args.dataset_type+"/testing/frames"
 
 # Loading dataset
 test_dataset = DataLoader(test_folder, transforms.Compose([
@@ -97,39 +99,110 @@ print("The number of test data is %d" % test_size)
 test_batch = data.DataLoader(test_dataset, batch_size = args.test_batch_size, 
                              shuffle=False, num_workers=args.num_workers_test, drop_last=False)
 
-if not std_loss_correction:
+###############################
+histories = {}
+for i in range(args.c):
+    histories[f"d{i}"] = []
+    histories[f"x{i}"] = []
+    histories[f"y{i}"] = []
+    histories[f"t{i}"] = []
+
+try:
+    #delete r all files in '/home/smoothjazzuser/Desktop/ram/'
+    shutil.rmtree('/home/smoothjazzuser/Desktop/ram/', ignore_errors=True)
+except:
+    pass
+
+
+def percentile  (array, percentile):
+    percentile = np.squeeze(percentile)
+    array = np.squeeze(array)
+    return np.percentile(array, percentile)
+###############################
+
+if method == 'none':
     loss_func_mse = nn.MSELoss(reduction='none')
+
 else:
     mse = nn.MSELoss(reduction='none')
-    def loss_func_mse(i, t):
-        global loss_sections, std_loss_correction
+    def bl (x, y, ix, id):
+        x = cv2.GaussianBlur(x, (5,5), 0)
+        y = cv2.GaussianBlur(y, (5,5), 0)
+
+        x = np.squeeze(x)
+        y = np.squeeze(y)
+        
+        x = np.fft.fft2(x)
+        y = np.fft.fft2(y)
+        x = np.fft.fftshift(x)
+        y = np.fft.fftshift(y)
+        #set all values below 0.1 to 0
+        x_h = np.percentile(np.abs(x), 100)
+        y_h = np.percentile(np.abs(y), 100)
+        x_l = np.percentile(np.abs(x), 90)
+        y_l = np.percentile(np.abs(y), 90)
+        x = np.where((np.abs(x) > x_h) &  (np.abs(x) < x_l), 0, x)
+        y = np.where((np.abs(y) > y_h) &  (np.abs(y) < y_l), 0, y)
+        x = np.fft.ifftshift(x)
+        y = np.fft.ifftshift(y)
+        x = np.fft.ifft2(x)
+        y = np.fft.ifft2(y)
+        
+        x = np.abs(x)
+        y = np.abs(y)
+
+        x = cv2.GaussianBlur(x, (5,5), 0)
+        y = cv2.GaussianBlur(y, (5,5), 0)
+
+        d = np.abs(x-y)
+        for _ in range(10):
+            d = cv2.GaussianBlur(d, (11,11), 0)
+
+        histories[str(id)].append(d)
+        if len(histories[str(id)]) > 25: 
+            histories[str(id)].pop(0)
+        d = np.abs(d - np.mean(np.array(histories[str(id)]) , axis=0)) + 1e-9
+        # for _ in range(10):
+        #     d = cv2.GaussianBlur(d, (11,11), 0)
+        thresh_d = np.percentile(d, 90)
+        histories['t'+str(id)[1]].append(thresh_d)
+        if len(histories['t'+str(id)[1]]) > 10:
+            histories['t'+str(id)[1]].pop(0)
+        d = np.where(d < np.mean(histories['t'+str(id)[1]]), 0, d)
+
+
+        # #opencv imfill
+        # d = cv2.dilate(d, np.ones((3,3), np.uint8), iterations=10)
+        # d = cv2.erode(d, np.ones((3,3), np.uint8), iterations=10)
+        # thresh_d1 = np.percentile(d, 90)
+        # thresh_d2 = np.percentile(d, 97)
+        # d = np.where(d < thresh_d, 0, d)
+        return d
+        
+    def loss_func_mse(x, y, fft=True, colors=True, method='blur', std_details=True, diff_ = True):
+        global loss_sections, std_loss_correction, histories
         #split l into len(loss_sections) sections
-        losses = {'i':[], 't':[]}
+        losses = {'x':[], 'y':[]}
 
-        #split tensor into sections
-        for section in range(loss_sections):
-            losses['i'].append(i[:,section*(i.shape[1]//loss_sections):(section+1)*(i.shape[1]//loss_sections)])
-            losses['t'].append(t[:,section*(t.shape[1]//loss_sections):(section+1)*(t.shape[1]//loss_sections)])
+        if method=='blur':
+            x = x.cpu().detach().numpy()
+            y = y.cpu().detach().numpy()
+            # convert to double precision
+            x = x.astype(np.float64)
+            y = y.astype(np.float64)
 
-        loss = 0
-        for section in range(loss_sections): 
-            l = mse(losses['i'][section], losses['t'][section])
-            l = l.mean()
-            std_loss_correction[section].append(l.cpu().detach().numpy())
-            if method =='rolling_std':
-                window = len(std_loss_correction[section])
-                if window > 100:
-                    window = 100
-                p = np.std(std_loss_correction[section][-window:]) + 0.0000001
-                loss = l * abs(.5 - p)
-            elif method == 'percentile':
-                p = percentileofscore(std_loss_correction[section], l.cpu().detach().numpy())/100  + 0.000000001
-                loss += l*abs((.5 - p)**2)
-            elif method == 'mean':
-                #l = l / np.mean(std_loss_correction[section])
-                p = abs(np.mean(std_loss_correction[section]) - l.cpu().detach().numpy()) + 0.000000001
-                loss += l*p
+            
+            d = np.zeros(x.shape)
+            for i in range(x.shape[0]):
+                d[i,:,:] = bl(x[i,:,:], y[i,:,:], f'x{i}', f'd{i}')
 
+            plt.imsave(f"/home/smoothjazzuser/Desktop/ram/fft_x_{len(glob.glob('/home/smoothjazzuser/Desktop/ram/*'))+1}.png", normalize_array(d.transpose(1,2,0)))
+            #y = normalize_array(y)
+            #x = normalize_array(x)
+            #d = normalize_array(d)
+
+            loss = np.mean(d)
+            loss = torch.tensor(loss).cuda()
 
         return loss
 
