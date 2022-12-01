@@ -26,6 +26,8 @@ import random
 import argparse
 from tqdm import tqdm
 
+#change dir to MNAD
+os.chdir('/home/smoothjazzuser/videogame-anomoly/MNAD')
 
 parser = argparse.ArgumentParser(description="MNAD")
 parser.add_argument('--gpus', nargs='+', type=str, help='gpus')
@@ -49,6 +51,7 @@ parser.add_argument('--dataset_type', type=str, default='bugs', help='type of da
 parser.add_argument('--dataset_path', type=str, default='./dataset', help='directory of data')
 parser.add_argument('--exp_dir', type=str, default='log', help='directory of log')
 
+downscale = True
 args = parser.parse_args()
 
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
@@ -104,7 +107,15 @@ orig_stdout = sys.stdout
 f = open(os.path.join(log_dir, 'log.txt'),'w')
 sys.stdout= f
 
-loss_func_mse = nn.MSELoss(reduction='none')
+if downscale:
+    def loss_func_mse(x, y):
+        #resize x and y t 84x84
+        x = F.interpolate(x, size=(84, 84), mode='bilinear', align_corners=True)
+        y = F.interpolate(y, size=(84, 84), mode='bilinear', align_corners=True)
+        loss = torch.nn.functional.mse_loss(x, y)
+        return loss
+else:
+    loss_func_mse = nn.MSELoss(reduction='none')
 
 # Training
 
