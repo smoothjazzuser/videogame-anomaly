@@ -31,7 +31,7 @@ os.chdir('/home/smoothjazzuser/videogame-anomoly/MNAD')
 
 parser = argparse.ArgumentParser(description="MNAD")
 parser.add_argument('--gpus', nargs='+', type=str, help='gpus')
-parser.add_argument('--batch_size', type=int, default=15, help='batch size for training')
+parser.add_argument('--batch_size', type=int, default=30, help='batch size for training')
 parser.add_argument('--test_batch_size', type=int, default=1, help='batch size for test')
 parser.add_argument('--epochs', type=int, default=12, help='number of epochs for training')
 parser.add_argument('--loss_compact', type=float, default=0.15, help='weight of the feature compactness loss')
@@ -45,7 +45,7 @@ parser.add_argument('--t_length', type=int, default=1, help='length of the frame
 parser.add_argument('--fdim', type=int, default=512, help='channel dimension of the features')
 parser.add_argument('--mdim', type=int, default=512, help='channel dimension of the memory items')
 parser.add_argument('--msize', type=int, default=10, help='number of the memory items')
-parser.add_argument('--num_workers', type=int, default=5, help='number of workers for the train loader')
+parser.add_argument('--num_workers', type=int, default=15, help='number of workers for the train loader')
 parser.add_argument('--num_workers_test', type=int, default=1, help='number of workers for the test loader')
 parser.add_argument('--dataset_type', type=str, default='bugs', help='type of dataset: ped2, avenue, shanghai')
 parser.add_argument('--dataset_path', type=str, default='./dataset', help='directory of data')
@@ -110,7 +110,8 @@ sys.stdout= f
 if downscale:
     def loss_func_mse(x, y):
         #resize x and y t 84x84
-        loss = torch.nn.functional.mse_loss(F.interpolate(x, size=(84, 84), mode='nearest'), F.interpolate(y, size=(84, 84), mode='nearest'))
+        x, y = F.interpolate(x, size=(84, 84)), F.interpolate(y, size=(84, 84)) #mode = nearest-exact
+        loss = F.mse_loss(x,y)
         return loss
 else:
     loss_func_mse = nn.MSELoss(reduction='none')
