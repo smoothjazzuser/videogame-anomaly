@@ -33,7 +33,7 @@ parser = argparse.ArgumentParser(description="MNAD")
 parser.add_argument('--gpus', nargs='+', type=str, help='gpus')
 parser.add_argument('--batch_size', type=int, default=30, help='batch size for training')
 parser.add_argument('--test_batch_size', type=int, default=1, help='batch size for test')
-parser.add_argument('--epochs', type=int, default=12, help='number of epochs for training')
+parser.add_argument('--epochs', type=int, default=30, help='number of epochs for training')
 parser.add_argument('--loss_compact', type=float, default=0.15, help='weight of the feature compactness loss')
 parser.add_argument('--loss_separate', type=float, default=0.15, help='weight of the feature separateness loss')
 parser.add_argument('--h', type=int, default=84, help='height of input images')#256
@@ -110,7 +110,7 @@ sys.stdout= f
 if downscale:
     def loss_func_mse(x, y):
         #resize x and y t 84x84
-        x, y = F.interpolate(x, size=(84, 84)), F.interpolate(y, size=(84, 84)) #mode = nearest-exact
+        x, y = F.interpolate(x, size=(84, 84), mode = 'nearest-exact'), F.interpolate(y, size=(84, 84), mode = 'nearest-exact') #mode = nearest-exact
         loss = F.mse_loss(x,y)
         return loss
 else:
