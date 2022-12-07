@@ -25,6 +25,8 @@ from utils import *
 import random
 import argparse
 from tqdm import tqdm
+from torchvision.transforms.functional import gaussian_blur
+from glob import glob
 
 #change dir to MNAD
 os.chdir('/home/smoothjazzuser/videogame-anomoly/MNAD')
@@ -33,7 +35,7 @@ parser = argparse.ArgumentParser(description="MNAD")
 parser.add_argument('--gpus', nargs='+', type=str, help='gpus')
 parser.add_argument('--batch_size', type=int, default=30, help='batch size for training')
 parser.add_argument('--test_batch_size', type=int, default=1, help='batch size for test')
-parser.add_argument('--epochs', type=int, default=30, help='number of epochs for training')
+parser.add_argument('--epochs', type=int, default=12, help='number of epochs for training')
 parser.add_argument('--loss_compact', type=float, default=0.15, help='weight of the feature compactness loss')
 parser.add_argument('--loss_separate', type=float, default=0.15, help='weight of the feature separateness loss')
 parser.add_argument('--h', type=int, default=84, help='height of input images')#256
@@ -71,26 +73,16 @@ test_folder = args.dataset_path+"/"+args.dataset_type+"/testing/frames"
 
 # Loading dataset
 train_dataset = DataLoader(train_folder, transforms.Compose([transforms.ToTensor(),]), resize_height=args.h, resize_width=args.w, time_step=args.t_length-1)
-
 test_dataset = DataLoader(test_folder, transforms.Compose([transforms.ToTensor(),]), resize_height=args.h, resize_width=args.w, time_step=args.t_length-1)
 
 train_size = len(train_dataset)
 test_size = len(test_dataset)
 
-train_batch = data.DataLoader(train_dataset, batch_size = args.batch_size, 
-                              shuffle=True, num_workers=args.num_workers, drop_last=True)
-test_batch = data.DataLoader(test_dataset, batch_size = args.test_batch_size, 
-                             shuffle=False, num_workers=args.num_workers_test, drop_last=False)
+train_batch = data.DataLoader(train_dataset, batch_size = args.batch_size, shuffle=True, num_workers=args.num_workers, drop_last=True)
+test_batch = data.DataLoader(test_dataset, batch_size = args.test_batch_size, shuffle=False, num_workers=args.num_workers_test, drop_last=False)
  
-
-# Model setting
-assert args.method == 'pred' or args.method == 'recon', 'Wrong task name'
-if args.method == 'pred':
-    from model.final_future_prediction_with_memory_spatial_sumonly_weight_ranking_top1 import *
-    model = convAE(args.c, args.t_length, args.msize, args.fdim, args.mdim)
-else:
-    from model.Reconstruction import *
-    model = convAE(args.c, memory_size = args.msize, feature_dim = args.fdim, key_dim = args.mdim)
+from model.Reconstruction import *
+model = convAE(args.c, memory_size = args.msize, feature_dim = args.fdim, key_dim = args.mdim)
 params_encoder =  list(model.encoder.parameters()) 
 params_decoder = list(model.decoder.parameters())
 params = params_encoder + params_decoder
@@ -109,9 +101,51 @@ sys.stdout= f
 
 if downscale:
     def loss_func_mse(x, y):
-        #resize x and y t 84x84
-        x, y = F.interpolate(x, size=(84, 84), mode = 'nearest-exact'), F.interpolate(y, size=(84, 84), mode = 'nearest-exact') #mode = nearest-exact
-        loss = F.mse_loss(x,y)
+        x, y = F.interpolate(x, size=(args.h, args.w)), F.interpolate(y, size=(args.h, args.w)) #mode = nearest-exact
+        #fourier transform
+        x = x.squeeze()
+        y = y.squeeze()
+
+        #to numpy
+        if False:
+            x = x.cpu().detach().numpy()
+            y = y.cpu().detach().numpy()
+
+            xx = x.copy()
+            yy = y.copy()
+            #save original dtype
+            orig_dtype = x.dtype
+            #convert to complex dtype
+            xx = xx.astype(np.complex64)
+            yy = yy.astype(np.complex64)
+            for dim in range(args.c):
+                xx[dim] = np.fft.fft2(x[dim], axes=(0,1))
+                yy[dim] = np.fft.fft2(y[dim], axes=(0,1))
+                xx[dim] = np.fft.fftshift(x[dim])
+                yy[dim] = np.fft.fftshift(y[dim])
+
+                #low freqs are less than .1
+                xx[dim][xx[dim] > .1] = 0
+                yy[dim][yy[dim] > .1] = 0
+                xx[dim] = np.fft.ifftshift(xx[dim])
+                yy[dim] = np.fft.ifftshift(yy[dim])
+                xx[dim] = np.fft.ifft2(xx[dim], axes=(0,1))
+                yy[dim] = np.fft.ifft2(yy[dim], axes=(0,1))
+            
+            #to tensor
+            x = torch.from_numpy(x).cuda()
+            y = torch.from_numpy(y).cuda()
+            #cast back to real dtype
+            xx = xx.astype(orig_dtype)
+            yy = yy.astype(orig_dtype)
+            xx = torch.from_numpy(xx).cuda()
+            yy = torch.from_numpy(yy).cuda()
+
+            loss = F.mse_loss(x,y) + F.mse_loss(yy,xx)
+        # loss = F.mse_loss(x,y) * F.mse_loss(xx,yy) * F.mse_loss(ax,ay)
+        # loss = F.mse_loss(x,y) * F.mse_loss(xx,yy)
+        else:
+            loss = F.mse_loss(x,y)
         return loss
 else:
     loss_func_mse = nn.MSELoss(reduction='none')
@@ -128,27 +162,13 @@ for epoch in tqdm(range(args.epochs)):
     kkk = 0
     #tqdm enumerate
     for j,(imgs) in tqdm(enumerate(train_batch), total=len(train_batch)):
-    #for j,(imgs) in enumerate(train_batch):
-        
         imgs = Variable(imgs).cuda()
-        
-        if args.method == 'pred':
-            outputs, _, _, m_items, softmax_score_query, softmax_score_memory, separateness_loss, compactness_loss = model.forward(imgs[:,0:12], m_items, True)
-        
-        else:
-            outputs, _, _, m_items, softmax_score_query, softmax_score_memory, separateness_loss, compactness_loss = model.forward(imgs, m_items, True)
-        
-        #print(outputs.shape, imgs.shape)
+        outputs, _, _, m_items, softmax_score_query, softmax_score_memory, separateness_loss, compactness_loss = model.forward(imgs, m_items, True)
         optimizer.zero_grad()
-        if args.method == 'pred':
-            loss_pixel = torch.mean(loss_func_mse(outputs, imgs[:,12:]))
-        else:
-            loss_pixel = torch.mean(loss_func_mse(outputs, imgs))
-            
+        loss_pixel = torch.mean(loss_func_mse(outputs, imgs))
         loss = loss_pixel + args.loss_compact * compactness_loss + args.loss_separate * separateness_loss
         loss.backward(retain_graph=True)
         optimizer.step()
-        
     scheduler.step()
     
     print('----------------------------------------')
@@ -162,7 +182,6 @@ for epoch in tqdm(range(args.epochs)):
     print('----------------------------------------')
     
 print('Training is finished')
-# Save the model and the memory items
 torch.save(model, os.path.join(log_dir, 'model.pth'))
 torch.save(m_items, os.path.join(log_dir, 'keys.pt'))
     
