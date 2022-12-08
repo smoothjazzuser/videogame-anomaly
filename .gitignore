@@ -1,4 +1,5 @@
 data/
+dataset/
 *.png
 *.target
 *exp*
@@ -154,3 +155,5 @@ cython_debug/
 .gitignore
 .vscode/settings.json
 MNAD/exp/bugs/recon/log/log.txt
+MNAD/dataset/frame_labels_bugs.npy
+MNAD/dataset/frame_labels_bugs.npy
