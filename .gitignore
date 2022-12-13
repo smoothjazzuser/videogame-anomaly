@@ -18,6 +18,8 @@ dataset/
 __pycache__/
 *.py[cod]
 *$py.class
+*jvsc*
+*.npy
 
 # C extensions
 *.so
@@ -157,3 +159,4 @@ cython_debug/
 MNAD/exp/bugs/recon/log/log.txt
 MNAD/dataset/frame_labels_bugs.npy
 MNAD/dataset/frame_labels_bugs.npy
+analysis-jvsc-dda0fac1-254e-4759-8552-9f4643b3882d7ce0a938-9672-4107-8ad6-e99ac2d0242b.ipynb

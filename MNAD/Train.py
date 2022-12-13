@@ -19,6 +19,10 @@ import math
 from collections import OrderedDict
 import copy
 import time
+
+#change dir to MNAD
+os.chdir('/home/smoothjazzuser/videogame-anomoly/MNAD')
+
 from model.utils import DataLoader
 from sklearn.metrics import roc_auc_score
 from utils import *
@@ -28,8 +32,7 @@ from tqdm import tqdm
 from torchvision.transforms.functional import gaussian_blur
 from glob import glob
 
-#change dir to MNAD
-os.chdir('/home/smoothjazzuser/videogame-anomoly/MNAD')
+
 
 parser = argparse.ArgumentParser(description="MNAD")
 parser.add_argument('--gpus', nargs='+', type=str, help='gpus')
