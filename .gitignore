@@ -5,6 +5,7 @@ dataset/
 *exp*
 *data*
 *.zip
+*.h5
 *.tar
 *.mp4
 */dataset/*
